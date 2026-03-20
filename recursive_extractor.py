@@ -25,7 +25,6 @@ linkdata_extract.decompress_files(OUTPUT,TOC)
 linkdata_extract.assign_extensions(OUTPUT, TOC)
 
 # git_extractor can go throught the entire directory or a single file
-# for now only the folder mode is made
 g1t_extractor.folder_extract(OUTPUT)
 
 
