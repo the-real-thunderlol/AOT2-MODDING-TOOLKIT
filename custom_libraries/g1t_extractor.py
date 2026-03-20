@@ -67,6 +67,15 @@ g1t_format_map = {
     0x12: (b'DXT5', 16),   # BC3
     0x59: (b'DXT1', 8),    # BC1
     0x5B: (b'DXT5', 16),   # BC3
+    0x5C: (b'ATI1', 8),    # BC4
+    0x5F: (b'DX10', 16),   # BC7 (requires DX10 header)
+}
+
+# DXGI format codes for textures that need DX10 extended header
+DXGI_FORMAT_BC7_UNORM = 98
+
+g1t_dxgi_map = {
+    0x5F: DXGI_FORMAT_BC7_UNORM,
 }
 
 
@@ -81,6 +90,7 @@ def build_dds(width, height, texture_type, mipmaps):
 
     fourcc, size_val = g1t_format_map[texture_type]
     is_compressed = fourcc is not None
+    use_dx10 = fourcc == b'DX10'
 
     # flags
     flags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT
@@ -140,7 +150,21 @@ def build_dds(width, height, texture_type, mipmaps):
         0, 0, 0             # dwCaps3, dwCaps4, dwReserved2
     )
 
-    return DDS_MAGIC + header
+    result = DDS_MAGIC + header
+
+    # apparently there are a billion types of ways textures are written.
+    # claude add DX10 extended header for formats with no legacy FourCC (e.g. BC7)
+    if use_dx10 and texture_type in g1t_dxgi_map:
+        dx10_header = struct.pack("<IIIII",
+            g1t_dxgi_map[texture_type],
+            3,              # D3D10_RESOURCE_DIMENSION_TEXTURE2D
+            0,              # miscFlag
+            1,              # arraySize
+            0               # miscFlags2
+        )
+        result += dx10_header
+
+    return result
 
 
 def convert_raw_image_data(pixel_data, width, height, texture_type, mipmaps):
@@ -248,7 +272,7 @@ def g1t_extract(INPUT_PATH):
             skip = 8
             is_srgb = False
 
-            if (flags >> 24) == 0x10:
+            if (flags >> 24) & 0x10:
                 # first uint32 after base header is the extra header size
                 extra_header_size = struct.unpack("<I", file.read(4))[0]
                 extra_remaining = file.read(extra_header_size - 4)
