@@ -16,36 +16,40 @@ def assign_extensions(OUTPUT_PATH, TOC_FILE):
     for entry in range(0,total_entries):
         try:
             with open(f"{OUTPUT_PATH}/chunk_{entry}.bin", "rb") as chunk:
-                signature = chunk.read(4)
+                signature = chunk.read(36)
+                signature_4 = signature[:4]
+                signature_32_4 = signature[32:36]
             if len(signature) >= 4: ## confirm if not empty
-                if signature == b"\x5f\x53\x32\x47":  # _S2G
+                if signature_4 == b"\x5f\x53\x32\x47":  # _S2G
                     extension = "s2g"
-                elif signature == b"\x44\x58\x42\x43":  # DXBC direct x somehting
+                elif signature_4 == b"\x44\x58\x42\x43":  # DXBC direct x somehting
                     extension = "dxbc"
-                elif signature == b"\x47\x54\x31\x47":  # GT1G texture files
+                elif signature_4 == b"\x47\x54\x31\x47":  # GT1G texture files
                     extension = "g1t"
-                elif signature == b"\x54\x4c\x53\x4b":  # TLSK
+                elif signature_4 == b"\x54\x4c\x53\x4b":  # TLSK
                     extension = "tlsk"
-                elif signature == b"\x4c\x43\x53\x4b":  # LCSK
+                elif signature_4 == b"\x4c\x43\x53\x4b":  # LCSK
                     extension = "lcsk"
-                elif signature == b"\x4d\x44\x4c\x53":  # MDLS model files
+                elif signature_4 == b"\x4d\x44\x4c\x53":  # MDLS model files
                     extension = "mdls"
-                elif signature == b"\x48\x49\x55\x42":  # HIUB
+                elif signature_4 == b"\x48\x49\x55\x42":  # HIUB
                     extension = "hiub"
-                elif signature == b"\x48\x57\x59\x58":  # HWYX
+                elif signature_4 == b"\x48\x57\x59\x58":  # HWYX
                     extension = "hwyx"
-                elif signature == b"\x4d\x45\x31\x47":  # ME1G
+                elif signature_4 == b"\x4d\x45\x31\x47":  # ME1G
                     extension = "me1g"
-                elif signature == b"\x46\x50\x31\x47":  # FP1G
+                elif signature_4 == b"\x46\x50\x31\x47":  # FP1G
                     extension = "fp1g"
-                elif signature == b"\x4b\x54\x53\x52":  # KTSR
+                elif signature_4 == b"\x4b\x54\x53\x52":  # KTSR
                     extension = "ktsr"
-                elif signature == b"\x41\x54\x53\x4c":  # ATSL
+                elif signature_4 == b"\x41\x54\x53\x4c":  # ATSL
                     extension = "atsl"
-                elif signature == b"\x5f\x4f\x4c\x53":  # _OLS level of detail
+                elif signature_4 == b"\x5f\x4f\x4c\x53":  # _OLS level of detail
                     extension = "ols"
-                elif signature == b"\x4b\x54\x53\x43":  # KTSC
+                elif signature_4 == b"\x4b\x54\x53\x43":  # KTSC
                     extension = "ktsc"
+                elif signature_32_4 == b"\x5f\x4d\x31\x47": # _M1G (G1M model files)
+                    extension = "g1m"
                 else:
                     extension = "bin"
 
