@@ -153,7 +153,7 @@ def decompress_files(OUTPUT_PATH, TOC_FILE):
 
             def decompress_chunk(entry, CHUNK_PATH):
                 with semaphore:
-                    print(f"Working on file {entry}")
+                    print(f"Decompressing file {entry}")
                     ## load data
 
                     with open(CHUNK_PATH, "rb") as chunk_file:

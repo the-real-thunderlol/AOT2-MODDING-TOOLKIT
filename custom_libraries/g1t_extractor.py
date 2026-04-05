@@ -189,9 +189,9 @@ def save_as_dds(pixel_data, width, height, texture_type, mipmaps, output_path):
 # G1T extraction
 #################################################################################
 
-def g1t_extract(INPUT_PATH):
+def g1t_extract(INPUT_PATH, OUTPUT_FOLDER):
     #os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-    OUTPUT_FOLDER = os.path.splitext(INPUT_PATH)[0]
+    ##OUTPUT_FOLDER = os.path.splitext(INPUT_PATH)[0]
 
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
@@ -311,9 +311,10 @@ def folder_extract(INPUT_FOLDER_PATH, file_starts_with="chunk"):
 
     for id in range(0,files):
         INPUT_PATH = f"{INPUT_FOLDER_PATH}/{file_starts_with}_{id}.g1t"
+        OUTPUT_FOLDER = f"{INPUT_FOLDER_PATH}/g1t/{file_starts_with}_{id}/"
 
         if os.path.exists(INPUT_PATH):
-            g1t_extract(INPUT_PATH)
+            g1t_extract(INPUT_PATH, OUTPUT_FOLDER)
 
         else:
             print(f"{id}: False")

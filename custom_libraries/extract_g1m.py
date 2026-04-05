@@ -57,7 +57,11 @@ def extract_g1m_containers(G1M_CONTAINER, OUTPUT_DIR):
 
             print(f"  {chunk_name}_{i}.g1m  ({len(g1m_blob)} bytes)")
 
-def extract_g1m_containers_in_folder(input_dir, OUTPUT_DIR="g1m/"):
+def extract_g1m_containers_in_folder(input_dir, OUTPUT_DIR=""):
+
+    if OUTPUT_DIR == "": ##no input
+        OUTPUT_DIR = f"{input_dir}/g1m/"
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     wrapped_g1m_files = sorted([f for f in os.listdir(input_dir) if f.endswith(".g1m")])
