@@ -2,6 +2,29 @@ import struct
 import os
 import csv
 import zlib
+import threading
+
+########################
+"""
+processes to run, recommended for 4 on Gen 3 NVME's. There is too much RW operations performing.
+you lose performance if you add more threads
+"""
+
+USE_CORES = 4
+CORE_OVERRIDE = True
+
+if (CORE_OVERRIDE == True):
+    # also verify if you have that many avaliable for processing
+    if os.cpu_count() >= USE_CORES:
+        CORES = USE_CORES
+    else:
+        print(f"Insufficient amount of threads avaliable than override. Using {os.cpu_count()} threads instead.")
+        CORES = os.cpu_count()
+else:
+    CORES = os.cpu_count()
+
+
+########################
 
 def assign_extensions(OUTPUT_PATH, TOC_FILE):
     ### toc is only needed to get "entries" in file. You can bypass it by manually providing the value
@@ -54,6 +77,7 @@ def assign_extensions(OUTPUT_PATH, TOC_FILE):
                     # if none above, might be g1m, due to complexity read seperately
 
                     if extension == "bin":
+                        # 27th March 2026
                         # literally just check 4 bytes
                         chunk.read(4) #skip 4
                         try:
@@ -110,6 +134,8 @@ def decompress_files(OUTPUT_PATH, TOC_FILE):
         if code == "491001":
             print("TOC was OF BIN FILE")
 
+            work_items = []
+
             for entries in range (0, file_entries):
 
                 # read entries
@@ -122,9 +148,14 @@ def decompress_files(OUTPUT_PATH, TOC_FILE):
                     print(f"Skip file {entries}")
                     continue
                 else:
-                    print(f"Working on file {entries}")
-                    ## load data
                     CHUNK_PATH = f"{OUTPUT_PATH}/chunk_{entries}.bin"
+                    work_items.append((entries, CHUNK_PATH))
+
+            def decompress_chunk(entry, CHUNK_PATH):
+                with semaphore:
+                    print(f"Working on file {entry}")
+                    ## load data
+
                     with open(CHUNK_PATH, "rb") as chunk_file:
                         data = chunk_file.read()
 
@@ -163,6 +194,19 @@ def decompress_files(OUTPUT_PATH, TOC_FILE):
                     with open(CHUNK_PATH, "wb") as write_file:
                         write_file.write(combined_data)
 
+            ####
+            TOTAL_CORES = CORES
+            semaphore = threading.Semaphore(TOTAL_CORES) ## total tasks at a time
+
+            workloads = []
+            for entry, CHUNK_PATH in work_items:
+                task_n = threading.Thread(target=decompress_chunk, args=(entry, CHUNK_PATH))
+                workloads.append(task_n)
+                task_n.start()
+
+            for task_n in workloads:
+                task_n.join()
+
         else:
             print("TOC was NOT OF BIN FILE")
 
@@ -177,7 +221,7 @@ def extract_files(INPUT_FILE, OUTPUT_PATH, TOC_FILE):
 
     print(f"TOC Exists: {TOC_FILE}")
 
-    with open(TOC_FILE, "r") as toc, open(INPUT_FILE, "rb") as file:
+    with open(TOC_FILE, "r") as toc:
         reader = csv.reader(toc)
         row = next(reader)
 
@@ -189,8 +233,11 @@ def extract_files(INPUT_FILE, OUTPUT_PATH, TOC_FILE):
         if code == "491001":
             print("IS A BIN FILE")
 
+            ## build work list from TOC for threading
+            work_items = []
+
             ## start extracting files
-            for entries in range(0,file_entries):
+            for entry in range(0,file_entries):
                 ## read next row in toc
                 row = next(reader)
 
@@ -200,14 +247,33 @@ def extract_files(INPUT_FILE, OUTPUT_PATH, TOC_FILE):
                 ## get where the file starts
                 start_byte = entry_start_offset * offset_multiplier
 
-                ## goto start_byte in LINKDATA
-                file.seek(start_byte)
+                work_items.append((entry, start_byte, entry_file_size))
 
-                ## get chunk size
-                chunk = file.read(entry_file_size)
+            def extract_chunk(entries, start_byte, entry_file_size):
+                with semaphore:
+                    with open(INPUT_FILE, "rb") as file:
+                        ## goto start_byte in LINKDATA
+                        file.seek(start_byte)
 
-                with open(f"{OUTPUT_PATH}/chunk_{entries}.bin","wb") as out:
-                    out.write(chunk)
+                        ## get chunk size
+                        chunk = file.read(entry_file_size)
+
+                        with open(f"{OUTPUT_PATH}/chunk_{entries}.bin","wb") as out:
+                            out.write(chunk)
+
+            ## start threads
+            TOTAL_CORES = CORES
+            semaphore = threading.Semaphore(TOTAL_CORES)  ## total tasks at a time
+
+            tasks = []
+            for entry, start_byte, entry_file_size in work_items:
+                task_n = threading.Thread(target=extract_chunk, args=(entry, start_byte, entry_file_size))
+                tasks.append(task_n)
+                task_n.start()
+
+            for task_n in tasks:
+                task_n.join()
+
         else:
             print("NOT A LINKDATA.BIN FILE")
             return 0
