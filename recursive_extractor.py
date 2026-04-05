@@ -27,7 +27,7 @@ linkdata_extract.assign_extensions(OUTPUT, TOC)
 
 # git_extractor can go throught the entire directory or a single file
 
-g1t_extractor.folder_extract(OUTPUT)
+g1t_extractor.folder_extract(INPUT_FOLDER_PATH=OUTPUT, file_starts_with="chunk")
 
 extract_g1m.extract_g1m_containers_in_folder(OUTPUT)
 
